@@ -1,5 +1,6 @@
 // Recebe o cadastro da página e envia para o RD Station como conversão "the-nutri-news".
-// A chave fica na variável de ambiente RD_API_KEY (configurada na Vercel, nunca no código).
+// O token fica na variável de ambiente RD_PUBLIC_TOKEN (configurada na Vercel, nunca no código).
+// O RD aceita o token público como api_key neste endpoint; RD_API_KEY fica só como reserva.
 
 const PROFISSOES = ['Nutrição', 'Medicina', 'Educação Física', 'Outra'];
 const CONVERSION_ID = 'the-nutri-news';
@@ -38,7 +39,7 @@ module.exports = async (req, res) => {
     return res.status(400).json({ ok: false, erro: 'campos', campos: erros });
   }
 
-  const chaves = [process.env.RD_API_KEY, process.env.RD_PUBLIC_TOKEN].filter(Boolean);
+  const chaves = [process.env.RD_PUBLIC_TOKEN, process.env.RD_API_KEY].filter(Boolean);
   if (!chaves.length) {
     console.error('Nenhuma chave do RD configurada');
     return res.status(500).json({ ok: false, erro: 'config' });
@@ -70,7 +71,7 @@ module.exports = async (req, res) => {
         }
       );
       if (r.ok) {
-        return res.status(200).json({ ok: true, k: i });
+        return res.status(200).json({ ok: true });
       }
       ultimo = r.status;
       const texto = await r.text();
