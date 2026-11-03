@@ -38,9 +38,9 @@ module.exports = async (req, res) => {
     return res.status(400).json({ ok: false, erro: 'campos', campos: erros });
   }
 
-  const key = process.env.RD_API_KEY;
-  if (!key) {
-    console.error('RD_API_KEY ausente');
+  const chaves = [process.env.RD_API_KEY, process.env.RD_PUBLIC_TOKEN].filter(Boolean);
+  if (!chaves.length) {
+    console.error('Nenhuma chave do RD configurada');
     return res.status(500).json({ ok: false, erro: 'config' });
   }
 
@@ -58,23 +58,28 @@ module.exports = async (req, res) => {
   if (limpa(utm.campaign, 200)) payload.traffic_campaign = limpa(utm.campaign, 200);
   if (limpa(utm.term || utm.content, 200)) payload.traffic_value = limpa(utm.term || utm.content, 200);
 
-  try {
-    const r = await fetch(
-      'https://api.rd.services/platform/conversions?api_key=' + encodeURIComponent(key),
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', accept: 'application/json' },
-        body: JSON.stringify({ event_type: 'CONVERSION', event_family: 'CDP', payload }),
+  let ultimo = 0;
+  for (let i = 0; i < chaves.length; i++) {
+    try {
+      const r = await fetch(
+        'https://api.rd.services/platform/conversions?api_key=' + encodeURIComponent(chaves[i]),
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', accept: 'application/json' },
+          body: JSON.stringify({ event_type: 'CONVERSION', event_family: 'CDP', payload }),
+        }
+      );
+      if (r.ok) {
+        return res.status(200).json({ ok: true, k: i });
       }
-    );
-    if (r.ok) {
-      return res.status(200).json({ ok: true });
+      ultimo = r.status;
+      const texto = await r.text();
+      console.error('RD respondeu (chave ' + i + ')', r.status, texto.slice(0, 800));
+      if (r.status !== 401 && r.status !== 403) break; // erro de dados: não adianta trocar de chave
+    } catch (e) {
+      console.error('Falha ao chamar o RD', e && e.message);
+      ultimo = 0;
     }
-    const texto = await r.text();
-    console.error('RD respondeu', r.status, texto.slice(0, 800));
-    return res.status(502).json({ ok: false, erro: 'rd', status: r.status });
-  } catch (e) {
-    console.error('Falha ao chamar o RD', e && e.message);
-    return res.status(502).json({ ok: false, erro: 'rede' });
   }
+  return res.status(502).json({ ok: false, erro: 'rd', status: ultimo });
 };
