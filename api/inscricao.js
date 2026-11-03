@@ -71,6 +71,8 @@ module.exports = async (req, res) => {
         }
       );
       if (r.ok) {
+        const okTexto = await r.text().catch(() => '');
+        console.log('RD aceitou (chave ' + i + ')', r.status, okTexto.slice(0, 300));
         return res.status(200).json({ ok: true });
       }
       ultimo = r.status;
