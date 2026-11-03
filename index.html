@@ -35,6 +35,25 @@ body{margin:0;background:#00433D;-webkit-font-smoothing:antialiased;overflow-x:h
 a{color:inherit}
 a:hover{opacity:0.85}
 
+/* Formulário de cadastro (janela) */
+#tnn-form{border:0;padding:0;margin:auto;width:min(560px,calc(100% - 32px));max-height:calc(100% - 32px);overflow:auto;background:#EAE7DA;color:#06362D;font-family:'Newsreader',Georgia,serif}
+#tnn-form::backdrop{background:rgba(0,67,61,0.82)}
+#tnn-form .f-top{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:20px 28px;border-bottom:2px solid #06362D}
+#tnn-form .f-top img{height:26px;width:auto;display:block}
+#tnn-form .f-close{width:44px;height:44px;border:0;background:transparent;color:#06362D;font-size:28px;line-height:1;cursor:pointer;font-family:'Oswald',sans-serif}
+#tnn-form form{padding:28px;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+#tnn-form .f-head{grid-column:1/-1;display:flex;flex-direction:column;gap:8px;margin-bottom:4px}
+#tnn-form .f-eyebrow{font-family:'Oswald',sans-serif;font-weight:500;letter-spacing:.2em;font-size:12px;text-transform:uppercase;color:#73633A}
+#tnn-form h2{margin:0;font-family:'Playfair Display',serif;font-weight:700;font-size:28px;line-height:1.2}
+#tnn-form label{display:flex;flex-direction:column;gap:6px;font-family:'Oswald',sans-serif;font-weight:500;letter-spacing:.12em;font-size:12px;text-transform:uppercase}
+#tnn-form input,#tnn-form select{height:48px;border:1px solid rgba(6,54,45,0.35);background:#fff;padding:0 14px;font-family:'Newsreader',serif;font-size:16px;color:#06362D;border-radius:0;width:100%;letter-spacing:0;text-transform:none}
+#tnn-form input:focus,#tnn-form select:focus{outline:2px solid #0B5B53;outline-offset:1px}
+#tnn-form .f-hp{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+#tnn-form button[type=submit]{grid-column:1/-1;height:56px;border:0;background:#06362D;color:#EDEAD9;font-family:'Oswald',sans-serif;font-weight:600;letter-spacing:.08em;font-size:15px;text-transform:uppercase;cursor:pointer}
+#tnn-form button[type=submit][disabled]{opacity:.6;cursor:wait}
+#tnn-form .f-msg{grid-column:1/-1;margin:0;font-size:15px;line-height:1.5;color:#8A2E1F;min-height:1em}
+@media (max-width:560px){#tnn-form form{grid-template-columns:1fr}}
+
 @media (max-width: 760px) {
   section[data-screen-label="Dobra 1 — Hero"] > div:first-of-type {
     flex-wrap: wrap !important;
@@ -232,6 +251,104 @@ a:hover{opacity:0.85}
 
 </div>
 
+<dialog id="tnn-form" aria-labelledby="tnn-form-title">
+  <div class="f-top">
+    <img src="assets/i-da2766bd3f.webp" alt="The Nutri News">
+    <button type="button" class="f-close" aria-label="Fechar" data-close>&times;</button>
+  </div>
+  <form novalidate>
+    <div class="f-head">
+      <span class="f-eyebrow">Edição semanal · gratuita</span>
+      <h2 id="tnn-form-title">Receba o The Nutri News toda segunda-feira</h2>
+    </div>
+    <label>Nome<input type="text" name="nome" autocomplete="name" required></label>
+    <label>E-mail<input type="email" name="email" autocomplete="email" required></label>
+    <label>Celular<input type="tel" name="celular" autocomplete="tel" placeholder="(00) 00000-0000" required></label>
+    <label>Profissão<select name="profissao" required>
+      <option value="">Selecione</option>
+      <option>Nutrição</option>
+      <option>Medicina</option>
+      <option>Educação Física</option>
+      <option>Outra</option>
+    </select></label>
+    <label class="f-hp" aria-hidden="true">Site<input type="text" name="website" tabindex="-1" autocomplete="off"></label>
+    <p class="f-msg" role="alert"></p>
+    <button type="submit">Quero me cadastrar gratuitamente</button>
+  </form>
+</dialog>
 
+<script>
+(function(){
+  var dlg = document.getElementById('tnn-form');
+  if (!dlg || typeof dlg.showModal !== 'function') return; // navegador antigo: botões seguem para a página do RD
+  var form = dlg.querySelector('form');
+  var msg = dlg.querySelector('.f-msg');
+  var btn = form.querySelector('button[type=submit]');
+  var RD_FALLBACK = 'https://materiais.pedroperim.com.br/the-nutri-news';
+
+  // Guarda as UTMs da visita para enviar ao RD
+  var utm = {};
+  try {
+    var q = new URLSearchParams(location.search);
+    ['source','medium','campaign','term','content'].forEach(function(k){ var v = q.get('utm_' + k); if (v) utm[k] = v; });
+    if (Object.keys(utm).length) sessionStorage.setItem('tnn_utm', JSON.stringify(utm));
+    else utm = JSON.parse(sessionStorage.getItem('tnn_utm') || '{}');
+  } catch (e) {}
+
+  document.querySelectorAll('a[href*="materiais.pedroperim.com.br/the-nutri-news"]').forEach(function(a){
+    a.addEventListener('click', function(ev){
+      ev.preventDefault();
+      msg.textContent = '';
+      dlg.showModal();
+      if (window.fbq) fbq('trackCustom', 'AbriuFormulario');
+    });
+  });
+  dlg.querySelector('[data-close]').addEventListener('click', function(){ dlg.close(); });
+  dlg.addEventListener('click', function(ev){ if (ev.target === dlg) dlg.close(); });
+
+  var celular = form.elements.celular;
+  celular.addEventListener('input', function(){
+    var d = celular.value.replace(/\D/g, '').slice(0, 11);
+    var f = d;
+    if (d.length > 2) f = '(' + d.slice(0,2) + ') ' + d.slice(2);
+    if (d.length > 7) f = '(' + d.slice(0,2) + ') ' + d.slice(2, d.length - 4) + '-' + d.slice(-4);
+    celular.value = f;
+  });
+
+  form.addEventListener('submit', function(ev){
+    ev.preventDefault();
+    var dados = {
+      nome: form.elements.nome.value,
+      email: form.elements.email.value,
+      celular: form.elements.celular.value,
+      profissao: form.elements.profissao.value,
+      website: form.elements.website.value,
+      utm: utm
+    };
+    var faltando = [];
+    if (dados.nome.trim().length < 2) faltando.push('nome');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(dados.email.trim())) faltando.push('e-mail');
+    if (dados.celular.replace(/\D/g, '').length < 10) faltando.push('celular com DDD');
+    if (!dados.profissao) faltando.push('profissão');
+    if (faltando.length) { msg.textContent = 'Confira: ' + faltando.join(', ') + '.'; return; }
+
+    btn.disabled = true; btn.textContent = 'Enviando...'; msg.textContent = '';
+    fetch('/api/inscricao', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(dados) })
+      .then(function(r){ return r.json().catch(function(){ return { ok: false }; }); })
+      .then(function(j){
+        if (j && j.ok) {
+          try { sessionStorage.setItem('tnn_lead', '1'); } catch (e) {}
+          location.href = '/obrigado';
+        } else {
+          throw new Error('falha');
+        }
+      })
+      .catch(function(){
+        btn.disabled = false; btn.textContent = 'Quero me cadastrar gratuitamente';
+        msg.innerHTML = 'Não conseguimos concluir agora. <a href="' + RD_FALLBACK + '" target="_blank" rel="noopener">Cadastre-se por aqui</a>.';
+      });
+  });
+})();
+</script>
 
 </body></html>
